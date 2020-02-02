@@ -1,8 +1,8 @@
 mod models;
+mod repos;
 
 use std::convert::Infallible;
 use std::collections::HashMap;
-use std::sync::Arc;
 
 use futures::future::BoxFuture;
 use futures::future::FutureExt;
@@ -12,6 +12,7 @@ use warp::http::StatusCode;
 use warp::reject::not_found;
 use warp::reply::{json, Json, Reply, with_status};
 use models::Customer;
+use repos::{CustomerRepository, DummyCustomerRepository};
 
 #[tokio::main]
 async fn main() {
@@ -43,26 +44,4 @@ fn handle(repo: &dyn CustomerRepository, id: String) -> BoxFuture<'static, Resul
 
     repo.get_customer(id)
         .map( |maybe_customer| maybe_customer.map(|c| json(&c)).ok_or(not_found())).boxed()
-}
-
-trait CustomerRepository {
-    fn get_customer(&self, id: String) -> BoxFuture<'static, Option<Customer>>;
-}
-
-#[derive(Clone)]
-struct DummyCustomerRepository {
-    db: Arc<HashMap<String, Customer>>,
-}
-
-impl DummyCustomerRepository {
-    pub fn new(db: HashMap<String, Customer>) -> DummyCustomerRepository {
-        DummyCustomerRepository { db: Arc::new(db) }
-    }
-}
-
-impl CustomerRepository for DummyCustomerRepository {
-    fn get_customer(&self, id: String) -> BoxFuture<'static, Option<Customer>> {
-       let db = self.db.clone();
-       async move { db.get(&id).map(|c| c.clone()) }.boxed()
-    }
 }
