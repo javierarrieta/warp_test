@@ -1,18 +1,13 @@
 mod models;
 mod repos;
+mod handlers;
 
-use std::convert::Infallible;
 use std::collections::HashMap;
 
-use futures::future::BoxFuture;
-use futures::future::FutureExt;
-
-use warp::{Filter, Rejection};
-use warp::http::StatusCode;
-use warp::reject::not_found;
-use warp::reply::{json, Json, Reply, with_status};
+use warp::Filter;
 use models::Customer;
-use repos::{CustomerRepository, DummyCustomerRepository};
+use repos::DummyCustomerRepository;
+use handlers::{handle, handle_recover};
 
 #[tokio::main]
 async fn main() {
@@ -30,18 +25,4 @@ async fn main() {
     warp::serve(hello)
         .run(([127, 0, 0, 1], 3030))
         .await;
-}
-
-async fn handle_recover(err: Rejection) -> Result<impl Reply, Infallible> {
-    if err.is_not_found() {
-        Ok(with_status("Not Found", StatusCode::NOT_FOUND))
-    } else {
-        Ok(with_status("Internal Error", StatusCode::INTERNAL_SERVER_ERROR))
-    }
-}
-
-fn handle(repo: &dyn CustomerRepository, id: String) -> BoxFuture<'static, Result<Json, Rejection>> {
-
-    repo.get_customer(id)
-        .map( |maybe_customer| maybe_customer.map(|c| json(&c)).ok_or(not_found())).boxed()
 }
