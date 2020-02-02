@@ -20,13 +20,10 @@ async fn main() {
         .into_iter().map(|c| (c.id.clone(), c)).collect();
 
     let customer_repo = DummyCustomerRepository::new(customer_db);
-    let repo: &dyn CustomerRepository = &customer_repo as &dyn CustomerRepository;
-
-    let handler: &dyn CustomerHandler = repo as &dyn CustomerHandler;
 
     let hello = warp::path!("customers" / String)
         .and(warp::get())
-        .and_then(handler.handle_get)
+        .and_then(move |id| handle(&customer_repo, id))
         .recover(handle_recover);
 
     warp::serve(hello)
@@ -42,10 +39,17 @@ async fn handle_recover(err: Rejection) -> Result<impl Reply, Infallible> {
     }
 }
 
+fn handle(repo: &dyn CustomerRepository, id: String) -> BoxFuture<'static, Result<Json, Rejection>> {
+
+    repo.get_customer(id)
+        .map( |maybe_customer| maybe_customer.map(|c| json(&c)).ok_or(not_found())).boxed()
+}
+
 trait CustomerRepository {
     fn get_customer(&self, id: String) -> BoxFuture<'static, Option<Customer>>;
 }
 
+#[derive(Clone)]
 struct DummyCustomerRepository {
     db: Arc<HashMap<String, Customer>>,
 }
@@ -60,17 +64,5 @@ impl CustomerRepository for DummyCustomerRepository {
     fn get_customer(&self, id: String) -> BoxFuture<'static, Option<Customer>> {
        let db = self.db.clone();
        async move { db.get(&id).map(|c| c.clone()) }.boxed()
-    }
-}
-
-trait CustomerHandler {
-    fn handle_get(&self, id: String) -> BoxFuture<'static, Result<Json, Rejection>>;
-}
-
-impl CustomerHandler for dyn CustomerRepository {
-    fn handle_get(&self, id: String) -> BoxFuture<'static, Result<Json, Rejection>> {
-
-        self.get_customer(id)
-            .map( |maybe_customer| maybe_customer.map(|c| json(&c)).ok_or(not_found())).boxed()
     }
 }
