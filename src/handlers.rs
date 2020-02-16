@@ -20,3 +20,10 @@ pub fn handle(repo: &dyn CustomerRepository, id: String) -> BoxFuture<'static, R
     repo.get_customer(id)
         .map( |maybe_customer| maybe_customer.map(|c| json(&c)).ok_or(not_found())).boxed()
 }
+//
+//pub fn curried_handle<'a>(repo: dyn CustomerRepository + Sync) -> Box<dyn Fn(String) -> BoxFuture<'static, Result<Json, Rejection>> + Send + Sync> {
+//    Box::new(move |  id | -> BoxFuture<'static, Result<Json, Rejection>> {
+//        repo.get_customer(id)
+//            .map(|maybe_customer| maybe_customer.map(|c| json(&c)).ok_or(not_found())).boxed()
+//    })
+//}

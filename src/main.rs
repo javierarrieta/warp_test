@@ -1,6 +1,7 @@
 mod models;
 mod repos;
 mod handlers;
+mod ddb;
 
 use std::collections::HashMap;
 
