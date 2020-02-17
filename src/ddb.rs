@@ -10,22 +10,27 @@ use crate::repos::CustomerRepository;
 use std::pin::Pin;
 
 pub struct CustomerDDBClient {
-    client: Arc<dyn DynamoDb>,
+    client: Arc<dyn DynamoDb + Send + Sync>,
 }
 
 impl CustomerRepository for CustomerDDBClient {
     fn get_customer(&self, id: String) -> BoxFuture<'static, Option<Customer>>  {
         let request = GetItemInput::default();
-        self.client.clone().get_item(request).map(|r|
-            r.ok().and_then(get_item_to_customer).map(|c| c.clone() )
-        ).boxed()
+        let client = self.client.clone();
+
+        async move {
+            let item = client.get_item(request).await.ok()?;
+            get_item_to_customer(item)
+        }.boxed()
     }
 }
 
+#[inline]
 fn get_item_to_customer(get_item: GetItemOutput) -> Option<Customer> {
-    unimplemented!()
+    get_item.item.and_then(parse_attributes_to_customer)
 }
 
-fn parse_attributes_to_customer(m: HashMap<String, AttributeValue>) -> Customer {
+#[inline]
+fn parse_attributes_to_customer(m: HashMap<String, AttributeValue>) -> Option<Customer> {
     unimplemented!()
 }
