@@ -18,7 +18,7 @@ impl CustomerRepository for CustomerDDBClient {
         let mut request = GetItemInput::default();
 
         let mut key_attr_value = AttributeValue::default();
-        key_attr_value.n = Some(id);
+        key_attr_value.s = Some(id);
         let mut key: HashMap<String, AttributeValue> = HashMap::new();
         key.insert("customer_id".to_owned(), key_attr_value);
 
@@ -26,6 +26,8 @@ impl CustomerRepository for CustomerDDBClient {
         request.key = key;
 
         let client = self.client.clone();
+
+        log::trace!("DynamoDB request object: {:?}", request);
 
         async move {
             let item = client.get_item(request).await.ok()?;
@@ -41,8 +43,8 @@ fn get_item_to_customer(get_item: &GetItemOutput) -> Option<Customer> {
 
 #[inline]
 fn parse_attributes_to_customer(m: &HashMap<String, AttributeValue>) -> Option<Customer> {
-    let id = m.get("customer_id").and_then(|v| v.n.clone())?;
-    let name = m.get("name").and_then(|v| v.n.clone())?;
+    let id = m.get("customer_id").and_then(|v| v.s.clone())?;
+    let name = m.get("name").and_then(|v| v.s.clone())?;
 
     Some(Customer::new(id, name))
 }

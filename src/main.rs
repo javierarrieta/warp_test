@@ -12,6 +12,7 @@ use std::sync::Arc;
 
 #[tokio::main]
 async fn main() {
+    env_logger::init();
 
 //    let customer_db: HashMap<String, Customer> = vec![Customer::new_from_str("1", "Joe Bloggs"), Customer::new_from_str("2", "John Doe"), Customer::new_from_str("3", "Peter Parker")]
 //        .into_iter().map(|c| (c.id.clone(), c)).collect();
@@ -24,6 +25,8 @@ async fn main() {
         .and(warp::get())
         .and_then(move |id| handle(&customer_repo, id))
         .recover(handle_recover);
+
+    log::info!("Starting server in port 3030");
 
     warp::serve(hello)
         .run(([127, 0, 0, 1], 3030))
